@@ -1,0 +1,6 @@
+model_checkpoint_path: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-5000000"
+all_model_checkpoint_paths: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-4960000"
+all_model_checkpoint_paths: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-4970240"
+all_model_checkpoint_paths: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-4980160"
+all_model_checkpoint_paths: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-4990080"
+all_model_checkpoint_paths: "/home/ubuntu/repos/safety-benchmark-master/data/run_name=initial_test/model-5000000"
