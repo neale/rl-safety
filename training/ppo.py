@@ -161,6 +161,8 @@ class PPO(object):
         self.saver = tf.train.Saver(**saver_args)
         self.save_path = os.path.join(logdir, 'model')
         self.restore_checkpoint(logdir)
+        print ("*************")
+        print (self.learning_rate)
 
     def save_checkpoint(self):
         logger.info("Saving new checkpoint. %i episodes, %i steps.",
