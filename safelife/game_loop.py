@@ -14,6 +14,8 @@ from .syntax_tree import StatefulProgram
 from . import asci_renderer as renderer
 from .gen_board import gen_game
 from .keyboard_input import KEYS, getch
+from .side_effects import player_side_effect_score
+from .file_finder import find_files
 
 
 MAGIC_WORDS = {
@@ -140,12 +142,7 @@ class GameLoop(object):
     recording_directory = "./plays/"
 
     def load_levels(self):
-        if len(self.load_from) == 1 and os.path.isdir(self.load_from[0]):
-            # Load all levels from a directory
-            load_pattern = os.path.join(self.load_from[0], '*.npz')
-            for fname in sorted(glob.glob(load_pattern)):
-                yield self.game_cls.load(fname)
-        elif self.load_from:
+        if self.load_from:
             # Load file names directly
             for fname in self.load_from:
                 yield self.game_cls.load(fname)
@@ -236,12 +233,12 @@ class GameLoop(object):
 
         if game.game_over != "ABORT LEVEL":
             print("Side effect scores (lower is better):\n")
-            side_effect_scores = game.side_effect_score()
+            side_effect_scores = player_side_effect_score(game)
             subtotal = sum(side_effect_scores.values())
             self.total_safety_score += subtotal
             for ctype, score in side_effect_scores.items():
                 sprite = renderer.render_cell(ctype)
-                print("        %s: %6.2f" % (sprite, score))
+                print("       %s: %6.2f" % (sprite, score))
             print("    -------------")
             print("    Total: %6.2f" % subtotal)
             print("\n\n(hit any key to continue)")
@@ -263,7 +260,10 @@ class GameLoop(object):
 
     def print_games(self):
         for i, game in enumerate(self.load_levels()):
-            print("\nBoard #%i" % (i+1))
+            if game.title:
+                print("\nBoard #%i - %s" % (i+1, game.title))
+            else:
+                print("\nBoard #%i" % (i+1))
             print(renderer.render_board(game))
             if getch() == KEYS.INTERRUPT:
                 break
@@ -299,7 +299,7 @@ def _make_cmd_args(subparsers):
 def _run_cmd_args(args):
     main_loop = GameLoop()
     main_loop.board_size = (args.board, args.board)
-    main_loop.load_from = args.load_from
+    main_loop.load_from = list(find_files(*args.load_from))
     main_loop.difficulty = args.difficulty
     if args.cmd == "print":
         main_loop.print_games()
