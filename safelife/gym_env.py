@@ -171,6 +171,8 @@ class SafeLifeEnv(gym.Env):
         done = self.state.game_over or times_up
         standing_still = old_position == self.state.agent_loc
         reward = base_reward / 3.0 - standing_still * self.no_movement_penalty
+        if base_reward > 0: print ('b reward', base_reward, '+++++++++++++++++++++++++++++++++++++++')
+        elif base_reward < 0: print ('b reward', base_reward, '------------------------------')
         return self._get_obs(), reward, done, {
             'did_move': not standing_still,
             'times_up': times_up,
