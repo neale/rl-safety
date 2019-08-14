@@ -20,7 +20,7 @@ from stable_baselines.a2c.utils import conv, linear, conv_to_fc
 from stable_baselines.common.policies import FeedForwardPolicy, register_policy
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.policies import MlpPolicy, CnnPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines import PPO2
 
 logger = logging.getLogger(__name__)
@@ -64,59 +64,21 @@ class StablePPO2(object):
                 raise ValueError("Unrecognized parameter: '%s'" % (key,))
 
         self.logdir = logdir
-        self.envs = [AutoResetWrapper(env) for env in envs]
-        self.env = DummyVecEnv([lambda: env for env in envs])
+        #self.env = [AutoResetWrapper(env) for env in envs]
+        self.env = SubprocVecEnv([lambda: AutoResetWrapper(env) for env in envs])
         
         n_cpu = 4
-#         self.env = SubprocVecEnv([lambda: gym.make('BreakoutDeterministic-v3') for i in range(n_cpu)])
+        # self.env = SubprocVecEnv([lambda: gym.make('BreakoutDeterministic-v3') for i in range(n_cpu)])
         
         self.op = SimpleNamespace()
         self.num_steps = 0
         self.num_episodes = 0
         self.save_path = os.path.join(logdir, 'model')
+        self.n_reports = 1
+        self._episodes = np.zeros((16,))
         #self.restore_checkpoint(logdir)
-
-        """ ----------
-        gamma : ndarray
-            Set of discount factors used to calculate the discounted rewards.
-        lmda : float or ndarray
-            Discount factor for generalized advantage estimator. If an array,
-            it should be the same shape as gamma.
-        policy_discount_weights : ndarray
-            Relative importance of the advantages at the different discount
-            factors in the policy loss function. Should sum to one.
-        value_discount_weights : ndarray
-            Relative importance of the advantages at the different discount
-            factors in the value loss function. Should sum to one.
-        vf_coef : float
-            Overall coefficient of the value loss in the total loss function.
-            Would be redundant with `value_discount_weights` if we didn't
-            force that to sum to one.
-        learning_rate : float
-        entropy_reg : float
-        entropy_clip : float
-            Used in entropy regularization. The regularization effectively doesn't
-            turn on until the entropy drops below this level.
-        max_gradient_norm : float
-        eps_clip : float
-            The PPO clipping for both policy and value losses. Note that this
-            implies that the value function has been scaled to roughly unit value.
-        rescale_policy_eps : bool
-            If true, the policy clipping is scaled by ε → (1-π)ε
-        min_eps_rescale : float
-            Sets a lower bound on how much `eps_clip` can be scaled by.
-            Only relevant if `rescale_policy_eps` is true.
-        reward_clip : float
-            Clip absolute rewards to be no larger than this.
-            If zero, no clipping occurs.
-        value_grad_rescaling : str
-            One of [False, 'smooth', 'per_batch', 'per_state'].
-            Sets the way in which value function is rescaled with entropy.
-            This makes sure that the total gradient isn't dominated by the
-            value function when entropy drops very low.
-        policy_rectifier : str
-            One of ['relu', 'elu'].
-        """
+        
+        
         self.gamma = 0.99
         self.lmda = 0.9  # generalized advantage estimation parameter
         self.policy_discount_weights = np.array([1.0], dtype=np.float32)
@@ -130,7 +92,7 @@ class StablePPO2(object):
         self.eps_clip = 0.1  # PPO clipping for both value and policy losses
         self.rescale_policy_eps = False
         self.min_eps_rescale = 1e-3  # Only relevant if rescale_policy_eps = True
-        self.reward_clip = 0.0
+        self.reward_clip = 10.0
         self.value_grad_rescaling = 'smooth'  # one of [False, 'smooth', 'per_batch', 'per_state']
         self.policy_rectifier = 'relu'  # or 'elu' or ...more to come
 
@@ -140,6 +102,11 @@ class StablePPO2(object):
         self.total_steps = 5e6
         self.report_every = 5000
         self.save_every = 10000
+
+        session_config = tf.ConfigProto()
+        session_config.gpu_options.allow_growth=True
+
+        self.session = tf.Session(config=session_config)
 
         ppo_args = { 
                 'policy': PolicyPPO,
@@ -155,8 +122,8 @@ class StablePPO2(object):
                 'nminibatches': self.envs_per_minibatch,
                 'noptepochs': self.epochs_per_batch,
                 'cliprange': self.eps_clip, ## TODO
-                'cliprange_vf': self.eps_clip, ## TODO
-                'verbose': 1,
+                'cliprange_vf': 1., ## TODO
+                'verbose': 0,
                 'tensorboard_log': logdir,
                 '_init_setup_model': True,
                 'policy_kwargs': None,
@@ -166,9 +133,21 @@ class StablePPO2(object):
         self.model = PPO2(**ppo_args) # Nature Policy
     
     def callback(self, _locals, _globals):
-        #self_ = _locals['self']
-        #tf.summary.scalar('Base Reward', tf.reduce_mean(_locals['base_reward']))
-        #self_.summary = tf.summary.merge_all()
+        self_ = _locals['self']
+        #print (dir(self_))
+        #print (dir(self_.env.envs[0]))
+        episodes = np.array([self_.env.envs[i].num_episodes for i in range(16)])
+        lengths = np.array([self_.env.envs[i].episode_length for i in range(16)])
+        rewards = np.array([self_.env.envs[i].episode_reward for i in range(16)])
+        print ('length: ', self_.num_timesteps, rewards)
+        for i, (ep, length, reward) in enumerate(zip(episodes, lengths, rewards)):
+            if ep > self._episodes[i]: #done
+                print ('INFO: \tEpisode {} A-{}: length={}, reward={}'.format(episodes.sum(), i, length, reward))
+                with self_.graph.as_default():
+                    tf.summary.scalar('Reported Reward', rewards[i])
+                    tf.summary.scalar('Reported length', lengths[i])
+                    self_.summary = tf.summary.merge_all()
+                self._episodes = episodes
         return True
 
     def train(self, total_steps=None):
@@ -186,3 +165,4 @@ class StablePPO2(object):
         logger.info(
             "Episode %i: length=%i, reward=%0.1f",
             self.num_episodes, info['episode_length'], info['episode_reward'])
+

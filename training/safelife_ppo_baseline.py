@@ -24,16 +24,21 @@ class SafeLifeBasePPO(ppo_baseline.StablePPO2):
     board_gen_params = {}
     side_effect_args = {}
 
+    """ this is horseshit, something is funky with this inheritance and <baselines> """
+    num_episodes = 0
+    num_steps = 0
+    """ **************** """ 
+    
     def __init__(self, logdir=ppo_baseline.DEFAULT_LOGDIR, **kwargs):
         self.logdir = logdir
-        print (self.num_env)
         envs = [
-            #SafeLifeWrapper(
-            SafeLifeEnv(**self.environment_params)
-                #self.update_environment) 
-            for _ in range(self.num_env)
+            SafeLifeWrapper(
+                SafeLifeEnv(**self.environment_params),
+                reset_callback=self.update_environment
+            ) for _ in range(self.num_env)
         ]
         super().__init__(envs, logdir=logdir, **kwargs)
+
 
     def update_environment(self, env_wrapper):
         # Called just before an environment resets
@@ -105,7 +110,7 @@ class SafeLifePPO(SafeLifeBasePPO):
 
     # Training batch params
     num_env = 16
-    steps_per_env = 20
+    #steps_per_env = 20
     envs_per_minibatch = 4
     epochs_per_batch = 3
     total_steps = 5e6
@@ -139,7 +144,7 @@ class SafeLifePPO(SafeLifeBasePPO):
     }
     board_gen_params = {
         'board_shape': (25, 25),
-        'difficulty': 1,
+        'difficulty': 3.9,
         'max_regions': 4,
         'region_types': {
             'destroy': 1,

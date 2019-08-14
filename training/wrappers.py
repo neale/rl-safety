@@ -78,6 +78,7 @@ class SafeLifeWrapper(Wrapper):
         super().__init__(env)
 
     def step(self, action):
+        print ('SAFELIFE step')
         observation, reward, done, info = self.env.step(action)
         if self.video_recorder is not None:
             self.video_recorder.capture_frame()
@@ -128,6 +129,8 @@ class AutoResetWrapper(Wrapper):
         self._state = None
         self.num_episodes = -1
         self.reset_callback = reset_callback
+        self.episode_length = -1
+        self.episode_reward = 0
 
     @property
     def state(self):
@@ -141,16 +144,20 @@ class AutoResetWrapper(Wrapper):
         self.num_episodes += 1
         if self.reset_callback is not None:
             self.reset_callback(self)
-        return self.env.reset(**kwargs)
+        res = self.env.reset(**kwargs)
+        return res
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.episode_length += 1
+        print ('AUTORESET step l: ', self.episode_length)
         self.episode_reward += info.get('base_reward', reward)
+        self.report_reward = self.episode_reward
         info['episode_reward'] = self.episode_reward
         info['episode_length'] = self.episode_length
         info['num_episodes'] = self.num_episodes
-        if done:
-            obs = self.reset()
+        """ remove terminating reset -- done by baselines packages """
+        #if done: 
+        #    obs = self.reset()
         self._state = obs
         return obs, reward, done, info

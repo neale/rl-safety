@@ -155,7 +155,10 @@ class PPO(object):
         self.num_steps = 0
         self.num_episodes = 0
         self.build_graph()
-        self.session = tf.Session()
+        session_config = tf.ConfigProto()
+        session_config.gpu_options.allow_growth=True
+
+        self.session = tf.Session(config=session_config)
         self.session.run(tf.global_variables_initializer())
         self.logger = tf.summary.FileWriter(logdir, self.session.graph)
         self.saver = tf.train.Saver(**saver_args)
@@ -241,7 +244,7 @@ class PPO(object):
             policy_loss = tf.reduce_mean(policy_loss * op.policy_discount_weights)
         with tf.name_scope("entropy"):
             op.entropy = tf.reduce_sum(
-                -op.policy * tf.log(op.policy + 1e-12), axis=-1)
+                -op.policy * tf.math.log(op.policy + 1e-12), axis=-1)
             mean_entropy = tf.reduce_mean(op.entropy)
             pseudo_entropy = tf.stop_gradient(
                 tf.reduce_sum(op.policy*(1-op.policy), axis=-1))
@@ -304,7 +307,7 @@ class PPO(object):
             tf.summary.scalar("pseudo_entropy", avg_pseudo_entropy)
             tf.summary.scalar("pseudo_entropy_smooth", smoothed_pseudo_entropy)
         with tf.name_scope("training"):
-            tf.summary.histogram("gradients", tf.global_norm(grads))
+            tf.summary.histogram("gradients", tf.linalg.global_norm(grads))
             tf.summary.histogram("policy_loss", policy_loss)
             tf.summary.histogram("value_loss", value_loss)
         op.summary = tf.summary.merge_all()
@@ -375,7 +378,8 @@ class PPO(object):
                 actions.append(action)
                 action_prob.append(policy[action])
                 if done:
-                    self.log_episode(info)
+                    print ('env {} done'.format(i))
+                    self.log_episode(info, i)
                     if cell_states is not None:
                         # Zero out the cell state so that it starts
                         # fresh at the beginning of the next episode.
@@ -458,7 +462,7 @@ class PPO(object):
             summary = session.run(op.summary, feed_dict=fd)
             self.logger.add_summary(summary, self.num_steps)
 
-    def log_episode(self, info):
+    def log_episode(self, info, i):
         self.num_episodes += 1
         summary = tf.Summary()
         summary.value.add(tag='episode/reward', simple_value=info['episode_reward'])
@@ -466,8 +470,8 @@ class PPO(object):
         summary.value.add(tag='episode/completed', simple_value=self.num_episodes)
         self.logger.add_summary(summary, self.num_steps)
         logger.info(
-            "Episode %i: length=%i, reward=%0.1f",
-            self.num_episodes, info['episode_length'], info['episode_reward'])
+            "Episode %i A-%i: length=%i, reward=%0.1f",
+            self.num_episodes, i, info['episode_length'], info['episode_reward'])
 
     def train(self, total_steps=None):
         last_report = last_save = self.num_steps - 1

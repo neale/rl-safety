@@ -46,7 +46,7 @@ class SafeLifeBasePPO(ppo.PPO):
         envs = [
             SafeLifeWrapper(
                 SafeLifeEnv(**self.environment_params),
-                self.update_environment
+                reset_callback=self.update_environment
             ) for _ in range(self.num_env)
         ]
         super().__init__(envs, logdir=logdir, **kwargs)
@@ -81,6 +81,7 @@ class SafeLifePPO(SafeLifeBasePPO):
     can be made to support different architectures, etc., and then those can
     all be run together or in sequence.
     """
+    print ('safelife')
 
     # Training batch params
     num_env = 16
@@ -91,6 +92,8 @@ class SafeLifePPO(SafeLifeBasePPO):
     report_every = 5000
     save_every = 10000
 
+    test_every = 100000
+    test_environments = ['benchmarks/test_prune-3.npz']
     # Training network params
     gamma = np.array([0.9, 0.99], dtype=np.float32)
     policy_discount_weights = np.array([0.5, 0.5], dtype=np.float32)
@@ -108,7 +111,7 @@ class SafeLifePPO(SafeLifeBasePPO):
     # Environment params
     environment_params = {
         'max_steps': 1200,
-        'no_movement_penalty': 0.02,
+        'no_movement_penalty': 0.002,
         'remove_white_goals': True,
         'view_shape': (15, 15),
         'output_channels': tuple(range(15)),
@@ -117,6 +120,11 @@ class SafeLifePPO(SafeLifeBasePPO):
         'board_shape': (25, 25),
         'difficulty': 3,
         'max_regions': 4,
+        'region_types': {
+            'destroy': 1,
+            'prune': 2,
+        },
+        'start_region': None,
     }
 
     # --------------

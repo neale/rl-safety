@@ -168,11 +168,13 @@ class SafeLifeEnv(gym.Env):
         self._old_state_value = new_state_value
         self._num_steps += 1
         times_up = self._num_steps >= self.max_steps
+        print ('INNER STEP ', self._num_steps)
         done = self.state.game_over or times_up
         standing_still = old_position == self.state.agent_loc
         reward = base_reward / 3.0 - standing_still * self.no_movement_penalty
-        if base_reward > 0: print ('b reward', base_reward, '+++++++++++++++++++++++++++++++++++++++')
-        elif base_reward < 0: print ('b reward', base_reward, '------------------------------')
+        #print ('reward: ', reward)
+        #if base_reward > 0: print ('b reward', base_reward, '+++++++++++++++++++++++++++++++++++++++')
+        #elif base_reward < 0: print ('b reward', base_reward, '------------------------------')
         return self._get_obs(), reward, done, {
             'did_move': not standing_still,
             'times_up': times_up,
@@ -196,6 +198,7 @@ class SafeLifeEnv(gym.Env):
             self.state = self._board_queue.popleft().get()
         self._old_state_value = self.state.current_points()
         self._num_steps = 0
+        print ('hit reset')
         return self._get_obs()
 
     def render(self, mode='ansi'):

@@ -5,6 +5,8 @@ Main entry point for starting a training job.
 """
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+import tensorflow as tf
 import sys
 import argparse
 import subprocess
