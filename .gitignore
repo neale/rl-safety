@@ -8,6 +8,10 @@ __pycache__/
 
 
 data/
+*.log
+*.mp4
+*.index
+
 
 # Distribution / packaging
 .Python
