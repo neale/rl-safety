@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tensorflow.contrib.slim import fully_connected as fc
 from tensorflow.examples.tutorials.mnist import input_data
 from safelife.render_graphics import render_game
+from safelife.game_physics import CellTypes
 from skimage.util import view_as_blocks
 
 """
@@ -114,6 +115,29 @@ class VariationalAutoencoder(object):
         return z
 
 
+def get_board_state(env):
+        board = env.state.board
+        goals = env.state.goals
+        agent_loc = env.state.agent_loc
+
+        board = board.copy()
+        goals = goals & CellTypes.rainbow_color
+
+        if env.remove_white_goals:
+            goals *= (goals != CellTypes.rainbow_color)
+
+        board += (goals << 3)
+
+        # And center the array on the agent.
+        # remove cause I dont want the Q function to be a function of the agent's fov
+        # board = recenter_view(
+        #    board, self.view_shape, agent_loc[::-1], self.state.exit_locs)
+        if env.output_channels:
+            shift = np.array(list(env.output_channels), dtype=np.int16)
+            board = (board[...,None] & (1 << shift)) >> shift
+        return board
+
+
 def preprocess_env_state(env):
     s = render_game(env.state)  # get full game frame ( oh I do call render game, Carroll was right )
     s_g = np.dot(s[...,:3], [0.299, 0.587, 0.114])  # convert to intensity
@@ -136,7 +160,9 @@ def train_state_vae(envs, replay_size, z_dim):
         for env in envs:
             action = env.action_space.sample()
             obs, _, done, _ = env.step(action)
-            s = preprocess_env_state(env)
+            s = get_board_state(env)  # [25, 25, 15]
+            s_flat = s.astype(np.float32).reshape([25*25*15])
+            # s = preprocess_env_state(env)
             states.append(s)
             if done:
                 _ = env.reset()
@@ -147,7 +173,7 @@ def train_state_vae(envs, replay_size, z_dim):
     np.random.shuffle(states)
     states = np.reshape(states, [states.shape[0], -1])
     vae_model = trainer_safelife(states, n_z=z_dim)
-    test_generation(vae_model)
+    # test_generation(vae_model)  # Not meaningful with bitfield representation
     print ('Trained VAE on random trajectories')
     return vae_model
 
@@ -196,7 +222,7 @@ def test_transformation(model_2d, mnist, batch_size=3000):
     plt.grid()
 
 
-def test_generation(model, z=None, h=70, w=70, batch_size=100):
+def test_generation(model, z=None, h=25, w=25, batch_size=100):
     # Test the trained model: generation
     # Sample noise vectors from N(0, 1)
     if z is None:

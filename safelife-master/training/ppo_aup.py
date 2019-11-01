@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from .wrappers import RewardsTracker
-from .state_vae import train_state_vae, preprocess_env_state
+from .state_vae import train_state_vae, preprocess_env_state, get_board_state
 
 import matplotlib.pyplot as plt
 
@@ -466,7 +466,8 @@ class PPO(object):
         )
 
     def get_rand_reward(self, env):
-        state_pp = preprocess_env_state(env)
+        state_pp = get_board_state(env)
+        state_pp = state_pp.astype(np.float32).reshape([1, 25*25*15])  # For using Bitfield representation
         state_z = self.state_encoder.transformer(state_pp)
         rewards = []
         for reward_fn in self.random_reward_fn:
