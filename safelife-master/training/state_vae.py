@@ -115,7 +115,7 @@ class VariationalAutoencoder(object):
 
 
 def preprocess_env_state(env):
-    s = render_game(env.state)  # get full game frame
+    s = render_game(env.state)  # get full game frame ( oh I do call render game, Carroll was right )
     s_g = np.dot(s[...,:3], [0.299, 0.587, 0.114])  # convert to intensity
     block_shape = (5, 5)
     view = view_as_blocks(s_g, block_shape)
@@ -152,9 +152,6 @@ def train_state_vae(envs, replay_size, z_dim):
     return vae_model
 
 def trainer_safelife(data, n_z, num_epoch=200, log_step=5):
-    print ('trainer')
-    print (data.shape)
-    #  Create a model    
     batch_size = 100
     input_dim = data[0].shape[0]
     w = h = int(np.sqrt(input_dim))
@@ -183,10 +180,8 @@ def trainer_safelife(data, n_z, num_epoch=200, log_step=5):
             log_str += '({:.3f} sec/epoch)'.format(end_time - start_time)
             print(log_str)
         
-        #if epoch % 100 == 0:
-        #    test_generation(model)
-            
-    print('Done!')
+    print('***********************************************8')
+    print('Done Training VAE!')
     return model
 
 def test_transformation(model_2d, mnist, batch_size=3000):
