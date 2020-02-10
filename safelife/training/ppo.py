@@ -177,7 +177,7 @@ class PPO(object):
         self.random_reward_fn = None 
         self.state_encoder = None
         self.rewards = np.zeros((len(self.envs)))
-        self.lamb_schedule = LinearSchedule(4e6, initial_p=1e-5, final_p=5.)
+        self.lamb_schedule = LinearSchedule(8e6, initial_p=1e-5, final_p=10.)
 
     def save_checkpoint(self):
         logger.info("Saving new checkpoint. %i episodes, %i steps.",
