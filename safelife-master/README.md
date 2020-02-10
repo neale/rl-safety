@@ -31,6 +31,21 @@ Minimizing side effects is very much an unsolved problem, and our baseline train
 
 ### Installation
 
+Neale's Tips:
+
+Install a virtual environment for use with SafeLife. The use of Tensorflow 1.13 makes it so its better to have an isolated environment. 
+
+Starting in the top-level directory for safelife
+
+`python3 -m venv safelife`
+
+`source ./safelife/bin/activate`
+
+`python3 -m pip install -r requirements.txt`
+
+When you are done with safelife, from anywhere in your filesystem call `deactivate`
+------------------------------------
+
 SafeLife requires Python 3.5 or better. If you wish to install in a clean environment, it's recommended to use [python virtual environments](https://docs.python.org/3/library/venv.html).
 
 SafeLife currently needs to be installed from source. First, download this repository and install the requirements:
