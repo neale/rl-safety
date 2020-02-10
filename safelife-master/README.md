@@ -44,7 +44,9 @@ Starting in the top-level directory for safelife
 `python3 -m pip install -r requirements.txt`
 
 When you are done with safelife, from anywhere in your filesystem call `deactivate`
+
 ------------------------------------
+
 
 SafeLife requires Python 3.5 or better. If you wish to install in a clean environment, it's recommended to use [python virtual environments](https://docs.python.org/3/library/venv.html).
 
