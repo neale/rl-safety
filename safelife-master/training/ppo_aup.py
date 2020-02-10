@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from .wrappers import RewardsTracker
-from .state_vae import train_state_vae, preprocess_env_state, get_board_state
+from .state_vae import train_state_vae, preprocess_env_state
 
 import matplotlib.pyplot as plt
 
@@ -172,11 +172,11 @@ class PPO(object):
         for env in envs:
             env.rand_reward = 0.
         self.z_dim = 32
-        self.vae_replay_size = 10e3
+        self.vae_replay_size = 100000
         self.n_random_reward_fn = 1
         self.random_reward_fn = np.random.uniform(-1, 1, size=(self.n_random_reward_fn, self.z_dim))
         plt.imshow(np.reshape(self.random_reward_fn[0], [1, -1]), cmap='gray')
-        plt.savefig('./rand2')
+        # plt.savefig('./rand2')
         self.rewards = np.zeros((len(self.envs)))
         self.state_encoder = train_state_vae(self.envs, self.vae_replay_size, self.z_dim)
 
@@ -466,8 +466,7 @@ class PPO(object):
         )
 
     def get_rand_reward(self, env):
-        state_pp = get_board_state(env)
-        state_pp = state_pp.astype(np.float32).reshape([1, 25*25*15])  # For using Bitfield representation
+        state_pp = preprocess_env_state(env)
         state_z = self.state_encoder.transformer(state_pp)
         rewards = []
         for reward_fn in self.random_reward_fn:
