@@ -41,6 +41,8 @@ Starting in the top-level directory for safelife
 
 `source ./safelife/bin/activate`
 
+`python3 -m pip install Cython==0.28.5`
+
 `python3 -m pip install -r requirements.txt`
 
 When you are done with safelife, from anywhere in your filesystem call `deactivate`
