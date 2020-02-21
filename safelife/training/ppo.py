@@ -166,19 +166,19 @@ class PPO(object):
         self.save_path = os.path.join(logdir, 'model')
         # self.restore_checkpoint(logdir)
 
-        """ Train VAE """
+        """ Train VAE 
         # call preprocess_env_state(env.state)
         # then state_encoder.transformer(pp_state) for latent code
         for env in envs:
             env.rand_reward = 0.
-        self.z_dim = 16
-        self.vae_replay_size = 3e3
-        self.n_random_reward_fn = 1
-        self.random_reward_fn = None 
+        self.z_dim = 16  # bottleneck dim for VAE
+        self.vae_replay_size = 3e3  # dataset for VAE
+        self.n_random_reward_fn = 1  # cardinality of |R|
+        self.random_reward_fn = None
         self.state_encoder = None
         self.rewards = np.zeros((len(self.envs)))
-        self.lamb_schedule = LinearSchedule(8e6, initial_p=1e-5, final_p=10.)
-
+        self.lamb_schedule = LinearSchedule(4e6, initial_p=1, final_p=1) # scheduler for L
+        """
     def save_checkpoint(self):
         logger.info("Saving new checkpoint. %i episodes, %i steps.",
                     self.num_episodes, self.num_steps)
@@ -465,11 +465,15 @@ class PPO(object):
         )
 
     def get_rand_reward(self, env):
+        """
+        calculate reward from set R. \sum^|R| (Q_ri (s, no-op))
+        """
         state_pp = preprocess_env_state(env)
         state_z = self.state_encoder.transformer(state_pp)
         rewards = []
         for reward_fn in self.random_reward_fn:
-            r = np.dot(reward_fn, state_z[0])
+            r = np.dot(reward_fn, state_z[0])  #correlation of random reward with state
+            print (state_z[0])
             rewards.append(r)
         rewards = np.array(rewards).reshape(self.n_random_reward_fn)
         return rewards
